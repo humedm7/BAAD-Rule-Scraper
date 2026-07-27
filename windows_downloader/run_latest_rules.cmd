@@ -3,7 +3,6 @@ setlocal EnableExtensions
 
 rem This small launcher refreshes the real downloader from GitHub each run.
 set "SCRIPT_DIR=%~dp0"
-for %%I in ("%SCRIPT_DIR%..") do set "REPO_DIR=%%~fI"
 set "REMOTE_URL=https://raw.githubusercontent.com/humedm7/BAAQMD-Rule-Scraper/main/windows_downloader/download_latest_rules.cmd"
 set "LOCAL_SCRIPT=%SCRIPT_DIR%download_latest_rules.cmd"
 set "NEW_SCRIPT=%SCRIPT_DIR%download_latest_rules.new.cmd"
@@ -30,17 +29,6 @@ exit /b %RESULT%
 
 :run_update
 call :write_log "Starting update"
-
-if exist "%REPO_DIR%\.git\" (
-    git.exe -C "%REPO_DIR%" pull --ff-only
-    if errorlevel 1 (
-        call :write_log "Git pull failed; continuing with the existing local clone"
-    ) else (
-        call :write_log "GitHub repository updated successfully"
-    )
-) else (
-    call :write_log "No local Git repository found; continuing with the downloader refresh"
-)
 
 curl.exe -L --fail --retry 2 --retry-delay 2 ^
   --output "%NEW_SCRIPT%" ^
