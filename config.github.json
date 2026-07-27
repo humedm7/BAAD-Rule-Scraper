@@ -1,0 +1,5 @@
+{
+  "current_rules_url": "https://www.baaqmd.gov/rules-and-compliance/current-rules",
+  "output_folder": "./BAAQMD_Current_Rules",
+  "timeout_seconds": 90
+}
