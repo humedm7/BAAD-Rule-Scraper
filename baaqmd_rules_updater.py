@@ -314,12 +314,15 @@ def write_index(path: Path, rules: list[Rule], state_rules: dict[str, Any]) -> N
     sheet = workbook.active
     sheet.title = "Current Rules"
     sheet.append(fields)
-    for rule in rules:
+    for row_number, rule in enumerate(rules, start=2):
         item = state_rules[rule.code]
         sheet.append([
             rule.order, rule.code, rule.title, rule.filename, rule.url,
             item["pages"], item["downloaded_at"], item["sha256"],
         ])
+        sheet.cell(row=row_number, column=4).value = (
+            f'=HYPERLINK("All Rules/{rule.filename}","{rule.filename}")'
+        )
 
     for cell in sheet[1]:
         cell.font = Font(color="FFFFFF", bold=True)
