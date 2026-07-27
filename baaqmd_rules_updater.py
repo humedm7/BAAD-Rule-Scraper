@@ -320,9 +320,11 @@ def write_index(path: Path, rules: list[Rule], state_rules: dict[str, Any]) -> N
             rule.order, rule.code, rule.title, rule.filename, rule.url,
             item["pages"], item["downloaded_at"], item["sha256"],
         ])
-        sheet.cell(row=row_number, column=4).value = (
+        filename_cell = sheet.cell(row=row_number, column=4)
+        filename_cell.value = (
             f'=HYPERLINK("All Rules/{rule.filename}","{rule.filename}")'
         )
+        filename_cell.font = Font(color="0563C1", underline="single")
 
     for cell in sheet[1]:
         cell.font = Font(color="FFFFFF", bold=True)
