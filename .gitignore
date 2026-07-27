@@ -1,0 +1,6 @@
+BAAQMD_Current_Rules/
+BAAQMD_Current_Rules.zip
+latest_download.zip
+download_staging/
+__pycache__/
+*.pyc
