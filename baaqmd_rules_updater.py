@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import csv
 import hashlib
 import json
@@ -219,6 +220,79 @@ def download_pdf(
         except (requests.RequestException, OSError, ValueError) as exc:
             last_error = exc
             temp.unlink(missing_ok=True)
+
+    # Some BAAQMD files (currently RG0833) are served correctly to Chromium
+    # but return an HTML/empty response to ordinary HTTP clients.
+    log(f"HTTP download failed for {rule.code}; trying Chromium fallback.")
+    temp = destination.with_suffix(".pdf.download")
+    try:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            context = browser.new_context(user_agent=USER_AGENT)
+            page = context.new_page()
+            page.goto(
+                "https://www.baaqmd.gov/rules-and-compliance/current-rules",
+                wait_until="domcontentloaded",
+                timeout=timeout_seconds * 1000,
+            )
+
+            for attempt_url in attempts:
+                try:
+                    result = page.evaluate(
+                        """async (url) => {
+                            const response = await fetch(url, {
+                                credentials: 'include',
+                                cache: 'no-store'
+                            });
+                            const bytes = new Uint8Array(
+                                await response.arrayBuffer()
+                            );
+                            let binary = '';
+                            const chunkSize = 32768;
+                            for (let i = 0; i < bytes.length; i += chunkSize) {
+                                binary += String.fromCharCode(
+                                    ...bytes.subarray(i, i + chunkSize)
+                                );
+                            }
+                            return {
+                                ok: response.ok,
+                                status: response.status,
+                                contentType: response.headers.get('content-type'),
+                                data: btoa(binary)
+                            };
+                        }""",
+                        attempt_url,
+                    )
+                    if not result["ok"]:
+                        raise ValueError(
+                            f"Browser download returned HTTP {result['status']}."
+                        )
+                    data = base64.b64decode(result["data"], validate=True)
+                    if not data.startswith(b"%PDF-"):
+                        raise ValueError(
+                            "The browser download is not a valid PDF "
+                            f"(content type: {result['contentType']})."
+                        )
+                    temp.write_bytes(data)
+                    PdfReader(temp)
+                    digest = hashlib.sha256(data).hexdigest()
+                    temp.replace(destination)
+                    browser.close()
+                    return {
+                        "sha256": digest,
+                        "bytes": destination.stat().st_size,
+                        "etag": None,
+                        "last_modified": None,
+                        "download_url": attempt_url,
+                    }
+                except Exception as exc:
+                    last_error = exc
+                    temp.unlink(missing_ok=True)
+            browser.close()
+    except Exception as exc:
+        last_error = exc
+        temp.unlink(missing_ok=True)
+
     raise RuntimeError(f"Could not download {rule.code}: {last_error}")
 
 
