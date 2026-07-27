@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import base64
-import csv
 import hashlib
 import json
 import os
@@ -19,6 +18,9 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 import requests
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.worksheet.table import Table, TableStyleInfo
 from playwright.sync_api import sync_playwright
 from pypdf import PdfReader, PdfWriter
 
@@ -297,7 +299,7 @@ def download_pdf(
 
 
 def write_index(path: Path, rules: list[Rule], state_rules: dict[str, Any]) -> None:
-    temp = path.with_suffix(".csv.tmp")
+    temp = path.with_name(f"{path.stem}.tmp{path.suffix}")
     fields = [
         "Table Order",
         "Rule Code",
@@ -308,23 +310,33 @@ def write_index(path: Path, rules: list[Rule], state_rules: dict[str, Any]) -> N
         "Last Downloaded",
         "SHA256",
     ]
-    with temp.open("w", newline="", encoding="utf-8-sig") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields)
-        writer.writeheader()
-        for rule in rules:
-            item = state_rules[rule.code]
-            writer.writerow(
-                {
-                    "Table Order": rule.order,
-                    "Rule Code": rule.code,
-                    "Rule Title": rule.title,
-                    "Filename": rule.filename,
-                    "Official Source URL": rule.url,
-                    "Pages": item["pages"],
-                    "Last Downloaded": item["downloaded_at"],
-                    "SHA256": item["sha256"],
-                }
-            )
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Current Rules"
+    sheet.append(fields)
+    for rule in rules:
+        item = state_rules[rule.code]
+        sheet.append([
+            rule.order, rule.code, rule.title, rule.filename, rule.url,
+            item["pages"], item["downloaded_at"], item["sha256"],
+        ])
+
+    for cell in sheet[1]:
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.fill = PatternFill("solid", fgColor="1F4E78")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    sheet.freeze_panes = "A2"
+    sheet.sheet_view.showGridLines = False
+    table = Table(displayName="CurrentRulesIndex", ref=f"A1:H{len(rules) + 1}")
+    table.tableStyleInfo = TableStyleInfo(
+        name="TableStyleMedium2", showRowStripes=True, showColumnStripes=False
+    )
+    sheet.add_table(table)
+    widths = [12, 13, 60, 16, 85, 10, 22, 66]
+    for column, width in enumerate(widths, start=1):
+        sheet.column_dimensions[chr(64 + column)].width = width
+    sheet.row_dimensions[1].height = 28
+    workbook.save(temp)
     temp.replace(path)
 
 
@@ -405,7 +417,7 @@ def main() -> int:
     internal_folder.mkdir(exist_ok=True)
 
     state_path = internal_folder / "baaqmd_rules_state.json"
-    index_path = output / "BAAQMD Current Rules Index.csv"
+    index_path = output / "BAAQMD Current Rules Index.xlsx"
     combined_path = output / "BAAQMD Current Rules Combined.pdf"
     changes_path = internal_folder / "BAAQMD_Change_Log.txt"
 
@@ -419,8 +431,8 @@ def main() -> int:
         legacy_state.replace(state_path)
     if not changes_path.exists() and legacy_changes.exists():
         legacy_changes.replace(changes_path)
-    if not index_path.exists() and legacy_index.exists():
-        legacy_index.replace(index_path)
+    if legacy_index.exists():
+        legacy_index.unlink()
     if not combined_path.exists() and legacy_combined.exists():
         legacy_combined.replace(combined_path)
 
