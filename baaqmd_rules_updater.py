@@ -322,7 +322,7 @@ def write_index(path: Path, rules: list[Rule], state_rules: dict[str, Any]) -> N
         ])
         filename_cell = sheet.cell(row=row_number, column=4)
         filename_cell.value = (
-            f'=HYPERLINK("All Rules/{rule.filename}","{rule.filename}")'
+            f'=HYPERLINK("Current Rules/{rule.filename}","{rule.filename}")'
         )
         filename_cell.font = Font(color="0563C1", underline="single")
 
@@ -413,13 +413,17 @@ def main() -> int:
 
     config = load_config(args.config)
     output = Path(config["output_folder"])
-    pdf_folder = output / "All Rules"
-    legacy_pdf_folder = output / "Rules"
+    pdf_folder = output / "Current Rules"
+    legacy_pdf_folder = output / "All Rules"
+    oldest_pdf_folder = output / "Rules"
     archive_folder = output / "Archive"
     internal_folder = output / "_Internal"
     output.mkdir(parents=True, exist_ok=True)
-    if not pdf_folder.exists() and legacy_pdf_folder.exists():
-        legacy_pdf_folder.replace(pdf_folder)
+    if not pdf_folder.exists():
+        if legacy_pdf_folder.exists():
+            legacy_pdf_folder.replace(pdf_folder)
+        elif oldest_pdf_folder.exists():
+            oldest_pdf_folder.replace(pdf_folder)
     pdf_folder.mkdir(exist_ok=True)
     archive_folder.mkdir(exist_ok=True)
     internal_folder.mkdir(exist_ok=True)
