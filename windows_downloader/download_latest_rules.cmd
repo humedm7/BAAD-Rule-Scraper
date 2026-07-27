@@ -2,7 +2,7 @@
 setlocal EnableExtensions
 
 rem BAAQMD Current Rules downloader - no PowerShell required.
-rem Keep DEST dedicated to these files because ROBOCOPY mirrors the folder.
+rem Existing unrelated files in DEST are preserved.
 
 set "DOWNLOAD_URL=https://github.com/humedm7/BAAQMD-Rule-Scraper/releases/download/baaqmd-current/BAAQMD_Current_Rules.zip"
 set "DEST=U:\Department\Technical\EA\Air\EOL\BAAQMD Current Rules"
@@ -39,7 +39,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "%SOURCE%\Rules\" (
+if not exist "%SOURCE%\All Rules\" (
     echo.
     echo ERROR: The ZIP did not contain the expected BAAQMD_Current_Rules folder.
     rmdir /s /q "%WORK%" >nul 2>&1
@@ -51,7 +51,7 @@ if not exist "%DEST%\" mkdir "%DEST%"
 
 echo Updating:
 echo %DEST%
-robocopy "%SOURCE%" "%DEST%" /MIR /R:2 /W:3 /NFL /NDL /NJH /NJS
+robocopy "%SOURCE%" "%DEST%" /E /R:2 /W:3 /NFL /NDL /NJH /NJS
 set "COPY_RESULT=%ERRORLEVEL%"
 
 rmdir /s /q "%WORK%" >nul 2>&1
@@ -65,7 +65,7 @@ if %COPY_RESULT% GEQ 8 (
 
 echo.
 echo Finished successfully.
-echo The latest individual PDFs, CSV, and combined PDF are in:
+echo The latest individual PDFs, Excel index, and combined PDF are in:
 echo %DEST%
 if /i not "%~1"=="/quiet" pause
 exit /b 0
