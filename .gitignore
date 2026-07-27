@@ -4,3 +4,4 @@ latest_download.zip
 download_staging/
 __pycache__/
 *.pyc
+windows_downloader/logs/
