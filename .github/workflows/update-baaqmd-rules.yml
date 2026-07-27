@@ -43,13 +43,24 @@ jobs:
               --pattern "BAAQMD_Current_Rules.zip" \
               --output latest_download.zip
             unzip -q -o latest_download.zip
+            gh release download baaqmd-current \
+              --pattern "BAAQMD_Updater_Internal.zip" \
+              --output internal_download.zip || true
+            if [ -f internal_download.zip ]; then
+              unzip -q -o internal_download.zip
+            fi
           fi
 
       - name: Update current rules
         run: python baaqmd_rules_updater.py --config config.github.json
 
       - name: Package updated collection
-        run: zip -q -r BAAQMD_Current_Rules.zip BAAQMD_Current_Rules
+        run: |
+          zip -q -r BAAQMD_Current_Rules.zip BAAQMD_Current_Rules \
+            -x "BAAQMD_Current_Rules/_Internal" \
+               "BAAQMD_Current_Rules/_Internal/*"
+          zip -q -r BAAQMD_Updater_Internal.zip \
+            BAAQMD_Current_Rules/_Internal
 
       - name: Create or update the current release
         env:
@@ -58,11 +69,12 @@ jobs:
           if ! gh release view baaqmd-current >/dev/null 2>&1; then
             gh release create baaqmd-current \
               --title "Current BAAQMD Rules" \
-              --notes "Automatically maintained current BAAQMD rule PDFs, index, change log, and combined bookmarked PDF." \
+              --notes "Automatically maintained current BAAQMD rule PDFs, archive, index, and combined bookmarked PDF." \
               --target "$GITHUB_SHA"
           fi
           gh release upload baaqmd-current \
             BAAQMD_Current_Rules.zip \
+            BAAQMD_Updater_Internal.zip \
             --clobber
 
       - name: Record successful run
