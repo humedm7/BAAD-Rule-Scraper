@@ -5,7 +5,8 @@ rem BAAQMD Current Rules downloader - no PowerShell required.
 rem Existing unrelated files in DEST are preserved.
 
 set "DOWNLOAD_URL=https://github.com/humedm7/BAAQMD-Rule-Scraper/releases/download/baaqmd-current/BAAQMD_Current_Rules.zip"
-set "DEST=U:\Department\Technical\EA\Air\EOL\BAAQMD Current Rules"
+rem The rules folder is three levels above windows_downloader.
+for %%I in ("%~dp0..\..\..") do set "DEST=%%~fI"
 set "WORK=%TEMP%\BAAQMD-Rules-%RANDOM%-%RANDOM%"
 set "ZIP=%WORK%\BAAQMD_Current_Rules.zip"
 set "SOURCE=%WORK%\BAAQMD_Current_Rules"
