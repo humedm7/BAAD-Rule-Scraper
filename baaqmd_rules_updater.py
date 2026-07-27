@@ -413,10 +413,16 @@ def main() -> int:
     # complete re-download on the first run after this layout change.
     legacy_state = output / "baaqmd_rules_state.json"
     legacy_changes = output / "BAAQMD_Change_Log.txt"
+    legacy_index = output / "BAAQMD_Current_Rules_Index.csv"
+    legacy_combined = output / "BAAQMD_All_Current_Rules_Combined.pdf"
     if not state_path.exists() and legacy_state.exists():
         legacy_state.replace(state_path)
     if not changes_path.exists() and legacy_changes.exists():
         legacy_changes.replace(changes_path)
+    if not index_path.exists() and legacy_index.exists():
+        legacy_index.replace(index_path)
+    if not combined_path.exists() and legacy_combined.exists():
+        legacy_combined.replace(combined_path)
 
     state = load_state(state_path)
     prior_rules: dict[str, Any] = state.get("rules", {})
