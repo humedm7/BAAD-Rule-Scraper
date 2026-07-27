@@ -372,6 +372,18 @@ def append_change_log(path: Path, changes: list[str]) -> None:
             stream.write("- No rule changes detected.\n")
 
 
+def archive_replaced_pdf(
+    source: Path, archive_folder: Path, rule_code: str
+) -> None:
+    """Keep a dated copy when BAAQMD replaces a current rule PDF."""
+    dated_archive = archive_folder / datetime.now().strftime("%Y-%m-%d")
+    dated_archive.mkdir(parents=True, exist_ok=True)
+    target = dated_archive / source.name
+    if target.exists():
+        target = dated_archive / f"{rule_code}_{datetime.now():%H%M%S}.pdf"
+    shutil.copy2(source, target)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
@@ -386,14 +398,25 @@ def main() -> int:
     output = Path(config["output_folder"])
     pdf_folder = output / "Rules"
     archive_folder = output / "Archive"
+    internal_folder = output / "_Internal"
     output.mkdir(parents=True, exist_ok=True)
     pdf_folder.mkdir(exist_ok=True)
     archive_folder.mkdir(exist_ok=True)
+    internal_folder.mkdir(exist_ok=True)
 
-    state_path = output / "baaqmd_rules_state.json"
-    index_path = output / "BAAQMD_Current_Rules_Index.csv"
-    combined_path = output / "BAAQMD_All_Current_Rules_Combined.pdf"
-    changes_path = output / "BAAQMD_Change_Log.txt"
+    state_path = internal_folder / "baaqmd_rules_state.json"
+    index_path = output / "BAAQMD Current Rules Index.csv"
+    combined_path = output / "BAAQMD Current Rules Combined.pdf"
+    changes_path = internal_folder / "BAAQMD_Change_Log.txt"
+
+    # Move technical tracking files from older releases without forcing a
+    # complete re-download on the first run after this layout change.
+    legacy_state = output / "baaqmd_rules_state.json"
+    legacy_changes = output / "BAAQMD_Change_Log.txt"
+    if not state_path.exists() and legacy_state.exists():
+        legacy_state.replace(state_path)
+    if not changes_path.exists() and legacy_changes.exists():
+        legacy_changes.replace(changes_path)
 
     state = load_state(state_path)
     prior_rules: dict[str, Any] = state.get("rules", {})
@@ -444,10 +467,17 @@ def main() -> int:
 
         existed = destination.exists()
         old_hash = prior.get("sha256")
+        backup = destination.with_suffix(".pdf.previous")
+        if existed:
+            shutil.copy2(destination, backup)
         log(f"Downloading: {rule.code}")
-        download_info = download_pdf(
-            session, rule, destination, config["timeout_seconds"]
-        )
+        try:
+            download_info = download_pdf(
+                session, rule, destination, config["timeout_seconds"]
+            )
+        except Exception:
+            backup.unlink(missing_ok=True)
+            raise
         reader = PdfReader(destination)
         now = datetime.now().isoformat(timespec="seconds")
         new_state_rules[rule.code] = {
@@ -463,10 +493,12 @@ def main() -> int:
             changes.append(f"ADDED: {rule.code} - {rule.title}")
             content_changed = True
         elif old_hash != download_info["sha256"]:
+            archive_replaced_pdf(backup, archive_folder, rule.code)
             changes.append(f"UPDATED: {rule.code} - {rule.title}")
             content_changed = True
         else:
             log(f"Content hash unchanged after check: {rule.code}")
+        backup.unlink(missing_ok=True)
 
     # A title or ordering change affects the CSV and PDF bookmarks even if bytes do not.
     metadata_changed = table_changed
