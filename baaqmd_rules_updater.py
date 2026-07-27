@@ -305,7 +305,6 @@ def write_index(path: Path, rules: list[Rule], state_rules: dict[str, Any]) -> N
         "Rule Code",
         "Rule Title",
         "Filename",
-        "Open PDF",
         "Official Source URL",
         "Pages",
         "Last Downloaded",
@@ -315,15 +314,12 @@ def write_index(path: Path, rules: list[Rule], state_rules: dict[str, Any]) -> N
     sheet = workbook.active
     sheet.title = "Current Rules"
     sheet.append(fields)
-    for row_number, rule in enumerate(rules, start=2):
+    for rule in rules:
         item = state_rules[rule.code]
         sheet.append([
-            rule.order, rule.code, rule.title, rule.filename, None, rule.url,
+            rule.order, rule.code, rule.title, rule.filename, rule.url,
             item["pages"], item["downloaded_at"], item["sha256"],
         ])
-        sheet.cell(row=row_number, column=5).value = (
-            f'=HYPERLINK("All Rules/{rule.filename}","Open PDF")'
-        )
 
     for cell in sheet[1]:
         cell.font = Font(color="FFFFFF", bold=True)
@@ -331,12 +327,12 @@ def write_index(path: Path, rules: list[Rule], state_rules: dict[str, Any]) -> N
         cell.alignment = Alignment(horizontal="center", vertical="center")
     sheet.freeze_panes = "A2"
     sheet.sheet_view.showGridLines = False
-    table = Table(displayName="CurrentRulesIndex", ref=f"A1:I{len(rules) + 1}")
+    table = Table(displayName="CurrentRulesIndex", ref=f"A1:H{len(rules) + 1}")
     table.tableStyleInfo = TableStyleInfo(
         name="TableStyleMedium2", showRowStripes=True, showColumnStripes=False
     )
     sheet.add_table(table)
-    widths = [12, 13, 60, 16, 13, 85, 10, 22, 66]
+    widths = [12, 13, 60, 16, 85, 10, 22, 66]
     for column, width in enumerate(widths, start=1):
         sheet.column_dimensions[chr(64 + column)].width = width
     sheet.row_dimensions[1].height = 28
