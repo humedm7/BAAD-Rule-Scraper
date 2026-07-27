@@ -5,7 +5,7 @@ rem BAAQMD Current Rules downloader - no PowerShell required.
 rem Keep DEST dedicated to these files because ROBOCOPY mirrors the folder.
 
 set "DOWNLOAD_URL=https://github.com/humedm7/BAAQMD-Rule-Scraper/releases/download/baaqmd-current/BAAQMD_Current_Rules.zip"
-set "DEST=%USERPROFILE%\OneDrive - PBF Holding Company, LLC\Documents\Projects\EOL\BAAQMD Current Rules"
+set "DEST=U:\Department\Technical\EA\Air\EOL\BAAQMD Rules and Regulations (AUTO-UPDATE)"
 set "WORK=%TEMP%\BAAQMD-Rules-%RANDOM%-%RANDOM%"
 set "ZIP=%WORK%\BAAQMD_Current_Rules.zip"
 set "SOURCE=%WORK%\BAAQMD_Current_Rules"
