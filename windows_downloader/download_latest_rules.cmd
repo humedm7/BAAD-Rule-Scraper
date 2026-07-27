@@ -40,7 +40,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "%SOURCE%\All Rules\" (
+if not exist "%SOURCE%\Current Rules\" (
     echo.
     echo ERROR: The ZIP did not contain the expected BAAQMD_Current_Rules folder.
     rmdir /s /q "%WORK%" >nul 2>&1
