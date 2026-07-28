@@ -27,6 +27,19 @@ from pypdf import PdfReader, PdfWriter
 
 DEFAULT_CONFIG = Path(__file__).with_name("config.json")
 USER_AGENT = "BAAQMD-Current-Rules-Updater/1.0"
+OUTPUT_SCHEMA_VERSION = 2
+
+
+def rule_filename(code: str) -> str:
+    """Return a short regulation/rule filename, such as Reg-1-2.pdf."""
+    match = re.fullmatch(r"RG(\d{2})(\d{2})", code, flags=re.IGNORECASE)
+    if not match:
+        raise ValueError(f"Unrecognized rule code: {code}")
+    regulation = int(match.group(1))
+    rule = int(match.group(2))
+    if rule == 0:
+        return f"Reg-{regulation}.pdf"
+    return f"Reg-{regulation}-{rule}.pdf"
 
 
 @dataclass
@@ -38,7 +51,7 @@ class Rule:
 
     @property
     def filename(self) -> str:
-        return f"{self.code}.pdf"
+        return rule_filename(self.code)
 
 
 def log(message: str) -> None:
@@ -358,7 +371,7 @@ def rebuild_combined(
         for page in reader.pages:
             writer.add_page(page)
             total_pages += 1
-        writer.add_outline_item(f"{rule.code} - {rule.title}", start_page)
+        writer.add_outline_item(rule.title, start_page)
 
     writer.add_metadata(
         {
@@ -469,7 +482,9 @@ def main() -> int:
         dated_archive = archive_folder / datetime.now().strftime("%Y-%m-%d")
         dated_archive.mkdir(parents=True, exist_ok=True)
         for code in removed_codes:
-            old_pdf = pdf_folder / f"{code}.pdf"
+            old_pdf = pdf_folder / rule_filename(code)
+            if not old_pdf.exists():
+                old_pdf = pdf_folder / f"{code}.pdf"
             if old_pdf.exists():
                 shutil.move(str(old_pdf), dated_archive / old_pdf.name)
             changes.append(f"REMOVED from current table: {code}")
@@ -477,6 +492,9 @@ def main() -> int:
 
     for rule in rules:
         destination = pdf_folder / rule.filename
+        legacy_destination = pdf_folder / f"{rule.code}.pdf"
+        if not destination.exists() and legacy_destination.exists():
+            legacy_destination.replace(destination)
         prior = prior_rules.get(rule.code, {})
         unchanged = (
             not args.force
@@ -531,7 +549,10 @@ def main() -> int:
         backup.unlink(missing_ok=True)
 
     # A title or ordering change affects the CSV and PDF bookmarks even if bytes do not.
-    metadata_changed = table_changed
+    metadata_changed = (
+        table_changed
+        or state.get("output_schema_version") != OUTPUT_SCHEMA_VERSION
+    )
     write_index(index_path, rules, new_state_rules)
     if (
         args.force
@@ -548,6 +569,7 @@ def main() -> int:
         state_path,
         {
             "last_successful_run": datetime.now().isoformat(timespec="seconds"),
+            "output_schema_version": OUTPUT_SCHEMA_VERSION,
             "table_signature": table_signature,
             "rules": new_state_rules,
         },
