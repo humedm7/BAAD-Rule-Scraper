@@ -40,6 +40,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if not exist "%SOURCE%\Current Rules\" if exist "%SOURCE%\All Rules\" (
+    move /y "%SOURCE%\All Rules" "%SOURCE%\Current Rules" >nul
+)
+
 if not exist "%SOURCE%\Current Rules\" (
     echo.
     echo ERROR: The ZIP did not contain the expected BAAQMD_Current_Rules folder.
