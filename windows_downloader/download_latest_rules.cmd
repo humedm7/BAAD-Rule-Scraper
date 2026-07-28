@@ -52,6 +52,9 @@ if not exist "%SOURCE%\Current Rules\" (
     exit /b 1
 )
 
+set "NEW_PDF_NAMING="
+if exist "%SOURCE%\Current Rules\Reg-*.pdf" set "NEW_PDF_NAMING=1"
+
 if not exist "%DEST%\" mkdir "%DEST%"
 
 echo Updating:
@@ -59,14 +62,21 @@ echo %DEST%
 robocopy "%SOURCE%" "%DEST%" /E /R:2 /W:3 /NFL /NDL /NJH /NJS
 set "COPY_RESULT=%ERRORLEVEL%"
 
-rmdir /s /q "%WORK%" >nul 2>&1
-
 if %COPY_RESULT% GEQ 8 (
+    rmdir /s /q "%WORK%" >nul 2>&1
     echo.
     echo ERROR: Windows could not update the destination folder.
     if /i not "%~1"=="/quiet" pause
     exit /b %COPY_RESULT%
 )
+
+rem Remove obsolete current-folder names only after the new Reg-* set was
+rem successfully copied. Archive files and unrelated files are preserved.
+if defined NEW_PDF_NAMING (
+    del /q "%DEST%\Current Rules\RG????.pdf" >nul 2>&1
+)
+
+rmdir /s /q "%WORK%" >nul 2>&1
 
 echo.
 echo Finished successfully.
