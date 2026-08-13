@@ -3,11 +3,11 @@ setlocal EnableExtensions
 
 rem This small launcher refreshes the real downloader from GitHub each run.
 set "SCRIPT_DIR=%~dp0"
-set "REMOTE_URL=https://raw.githubusercontent.com/humedm7/BAAQMD-Rule-Scraper/main/windows_downloader/download_latest_rules.cmd"
+set "REMOTE_URL=https://raw.githubusercontent.com/humedm7/BAAD-Rule-Scraper/main/windows_downloader/download_latest_rules.cmd"
 set "LOCAL_SCRIPT=%SCRIPT_DIR%download_latest_rules.cmd"
 set "NEW_SCRIPT=%SCRIPT_DIR%download_latest_rules.new.cmd"
 set "LOG_DIR=%SCRIPT_DIR%logs"
-set "LOG_FILE=%LOG_DIR%\BAAQMD_Update.log"
+set "LOG_FILE=%LOG_DIR%\BAAD_Update.log"
 
 if not exist "%LOG_DIR%\" mkdir "%LOG_DIR%" >nul 2>&1
 
@@ -22,7 +22,7 @@ if "%RESULT%"=="0" (
     call :write_log "SUCCESS"
 ) else (
     call :write_log "FAILED with exit code %RESULT%"
-    msg.exe %USERNAME% /time:120 "BAAQMD Current Rules update failed. See %LOG_FILE%." >nul 2>&1
+    msg.exe %USERNAME% /time:120 "BAAD Current Rules update failed. See %LOG_FILE%." >nul 2>&1
 )
 
 exit /b %RESULT%

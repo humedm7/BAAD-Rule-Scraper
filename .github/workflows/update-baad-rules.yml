@@ -1,4 +1,4 @@
-name: Update BAAQMD Rules
+name: Update BAAD Rules
 
 on:
   schedule:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: update-baaqmd-rules
+  group: update-baad-rules
   cancel-in-progress: false
 
 jobs:
@@ -38,12 +38,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view baaqmd-current >/dev/null 2>&1; then
-            gh release download baaqmd-current \
+          RELEASE_TAG=""
+          if gh release view baad-current >/dev/null 2>&1; then
+            RELEASE_TAG="baad-current"
+          elif gh release view baaqmd-current >/dev/null 2>&1; then
+            RELEASE_TAG="baaqmd-current"
+          fi
+          if [ -n "$RELEASE_TAG" ]; then
+            gh release download "$RELEASE_TAG" \
+              --pattern "BAAD_Current_Rules.zip" \
+              --output latest_download.zip || gh release download "$RELEASE_TAG" \
               --pattern "BAAQMD_Current_Rules.zip" \
               --output latest_download.zip
             unzip -q -o latest_download.zip
-            gh release download baaqmd-current \
+            gh release download "$RELEASE_TAG" \
+              --pattern "BAAD_Updater_Internal.zip" \
+              --output internal_download.zip || gh release download "$RELEASE_TAG" \
               --pattern "BAAQMD_Updater_Internal.zip" \
               --output internal_download.zip || true
             if [ -f internal_download.zip ]; then
@@ -52,29 +62,29 @@ jobs:
           fi
 
       - name: Update current rules
-        run: python baaqmd_rules_updater.py --config config.github.json
+        run: python baad_rules_updater.py --config config.github.json
 
       - name: Package updated collection
         run: |
-          zip -q -r BAAQMD_Current_Rules.zip BAAQMD_Current_Rules \
-            -x "BAAQMD_Current_Rules/_Internal" \
-               "BAAQMD_Current_Rules/_Internal/*"
-          zip -q -r BAAQMD_Updater_Internal.zip \
-            BAAQMD_Current_Rules/_Internal
+          zip -q -r BAAD_Current_Rules.zip BAAD_Current_Rules \
+            -x "BAAD_Current_Rules/_Internal" \
+               "BAAD_Current_Rules/_Internal/*"
+          zip -q -r BAAD_Updater_Internal.zip \
+            BAAD_Current_Rules/_Internal
 
       - name: Create or update the current release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view baaqmd-current >/dev/null 2>&1; then
-            gh release create baaqmd-current \
-              --title "Current BAAQMD Rules" \
-              --notes "Automatically maintained current BAAQMD rule PDFs, archive, index, and combined bookmarked PDF." \
+          if ! gh release view baad-current >/dev/null 2>&1; then
+            gh release create baad-current \
+              --title "Current BAAD Rules" \
+              --notes "Automatically maintained current BAAD rule PDFs, archive, index, and combined bookmarked PDF." \
               --target "$GITHUB_SHA"
           fi
-          gh release upload baaqmd-current \
-            BAAQMD_Current_Rules.zip \
-            BAAQMD_Updater_Internal.zip \
+          gh release upload baad-current \
+            BAAD_Current_Rules.zip \
+            BAAD_Updater_Internal.zip \
             --clobber
 
       - name: Record successful run
@@ -85,6 +95,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add status/last_successful_run_utc.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record successful BAAQMD update"
+            git commit -m "Record successful BAAD update"
             git push
           fi
