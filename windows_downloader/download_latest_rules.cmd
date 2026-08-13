@@ -1,18 +1,18 @@
 @echo off
 setlocal EnableExtensions
 
-rem BAAQMD Current Rules downloader - no PowerShell required.
+rem BAAD Current Rules downloader - no PowerShell required.
 rem Existing unrelated files in DEST are preserved.
 
-set "DOWNLOAD_URL=https://github.com/humedm7/BAAQMD-Rule-Scraper/releases/download/baaqmd-current/BAAQMD_Current_Rules.zip"
+set "DOWNLOAD_URL=https://github.com/humedm7/BAAD-Rule-Scraper/releases/download/baad-current/BAAD_Current_Rules.zip"
 rem The rules folder is three levels above windows_downloader.
 for %%I in ("%~dp0..\..\..") do set "DEST=%%~fI"
-set "WORK=%TEMP%\BAAQMD-Rules-%RANDOM%-%RANDOM%"
-set "ZIP=%WORK%\BAAQMD_Current_Rules.zip"
-set "SOURCE=%WORK%\BAAQMD_Current_Rules"
+set "WORK=%TEMP%\BAAD-Rules-%RANDOM%-%RANDOM%"
+set "ZIP=%WORK%\BAAD_Current_Rules.zip"
+set "SOURCE=%WORK%\BAAD_Current_Rules"
 
 echo.
-echo Downloading the latest BAAQMD rules...
+echo Downloading the latest BAAD rules...
 mkdir "%WORK%" >nul 2>&1
 
 curl.exe -L --fail --retry 3 --retry-delay 3 ^
@@ -23,7 +23,7 @@ if errorlevel 1 (
     echo.
     echo ERROR: GitHub download failed.
     echo Open this page in your browser and download the release manually:
-    echo https://github.com/humedm7/BAAQMD-Rule-Scraper/releases/tag/baaqmd-current
+    echo https://github.com/humedm7/BAAD-Rule-Scraper/releases/tag/baad-current
     rmdir /s /q "%WORK%" >nul 2>&1
     if /i not "%~1"=="/quiet" pause
     exit /b 1
@@ -46,7 +46,7 @@ if not exist "%SOURCE%\Current Rules\" if exist "%SOURCE%\All Rules\" (
 
 if not exist "%SOURCE%\Current Rules\" (
     echo.
-    echo ERROR: The ZIP did not contain the expected BAAQMD_Current_Rules folder.
+    echo ERROR: The ZIP did not contain the expected BAAD_Current_Rules folder.
     rmdir /s /q "%WORK%" >nul 2>&1
     if /i not "%~1"=="/quiet" pause
     exit /b 1

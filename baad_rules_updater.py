@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Incrementally download and combine the current BAAQMD rule PDFs."""
+"""Incrementally download and combine the current BAAD rule PDFs."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from pypdf import PdfReader, PdfWriter
 
 
 DEFAULT_CONFIG = Path(__file__).with_name("config.json")
-USER_AGENT = "BAAQMD-Current-Rules-Updater/1.0"
+USER_AGENT = "BAAD-Current-Rules-Updater/1.0"
 OUTPUT_SCHEMA_VERSION = 2
 
 
@@ -100,7 +100,7 @@ def extract_rule_code(url: str) -> str | None:
 
 def discover_rules(page_url: str, timeout_seconds: int) -> list[Rule]:
     """Render the JavaScript table and return one current PDF per rule."""
-    log("Loading the BAAQMD Current Rules table...")
+    log("Loading the BAAD Current Rules table...")
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page(user_agent=USER_AGENT)
@@ -182,7 +182,7 @@ def remote_appears_unchanged(
         )
         response.raise_for_status()
     except requests.RequestException:
-        # The CMS revision token is content-addressed in normal BAAQMD links.
+        # The CMS revision token is content-addressed in normal BAAD links.
         return "rev=" in rule.url
 
     current_etag = response.headers.get("ETag")
@@ -236,7 +236,7 @@ def download_pdf(
             last_error = exc
             temp.unlink(missing_ok=True)
 
-    # Some BAAQMD files (currently RG0833) are served correctly to Chromium
+    # Some BAAD files (currently RG0833) are served correctly to Chromium
     # but return an HTML/empty response to ordinary HTTP clients.
     log(f"HTTP download failed for {rule.code}; trying Chromium fallback.")
     temp = destination.with_suffix(".pdf.download")
@@ -375,8 +375,8 @@ def rebuild_combined(
 
     writer.add_metadata(
         {
-            "/Title": "BAAQMD Current Rules - Combined",
-            "/Subject": "Current BAAQMD rules in Current Rules table order",
+            "/Title": "BAAD Current Rules - Combined",
+            "/Subject": "Current BAAD rules in Current Rules table order",
             "/Author": "Bay Area Air Quality Management District",
         }
     )
@@ -405,7 +405,7 @@ def append_change_log(path: Path, changes: list[str]) -> None:
 def archive_replaced_pdf(
     source: Path, archive_folder: Path, rule_code: str
 ) -> None:
-    """Keep a dated copy when BAAQMD replaces a current rule PDF."""
+    """Keep a dated copy when BAAD replaces a current rule PDF."""
     dated_archive = archive_folder / datetime.now().strftime("%Y-%m-%d")
     dated_archive.mkdir(parents=True, exist_ok=True)
     target = dated_archive / source.name
@@ -426,6 +426,10 @@ def main() -> int:
 
     config = load_config(args.config)
     output = Path(config["output_folder"])
+    if not output.exists():
+        legacy_output = output.with_name("BAAQMD_Current_Rules")
+        if legacy_output.exists():
+            legacy_output.replace(output)
     pdf_folder = output / "Current Rules"
     legacy_pdf_folder = output / "All Rules"
     oldest_pdf_folder = output / "Rules"
@@ -441,21 +445,27 @@ def main() -> int:
     archive_folder.mkdir(exist_ok=True)
     internal_folder.mkdir(exist_ok=True)
 
-    state_path = internal_folder / "baaqmd_rules_state.json"
-    index_path = output / "BAAQMD Current Rules Index.xlsx"
-    combined_path = output / "BAAQMD Current Rules Combined.pdf"
-    changes_path = internal_folder / "BAAQMD_Change_Log.txt"
+    state_path = internal_folder / "baad_rules_state.json"
+    index_path = output / "BAAD Current Rules Index.xlsx"
+    combined_path = output / "BAAD Current Rules Combined.pdf"
+    changes_path = internal_folder / "BAAD_Change_Log.txt"
 
     # Move technical tracking files from older releases without forcing a
     # complete re-download on the first run after this layout change.
+    legacy_internal_state = internal_folder / "baaqmd_rules_state.json"
+    legacy_internal_changes = internal_folder / "BAAQMD_Change_Log.txt"
     legacy_state = output / "baaqmd_rules_state.json"
     legacy_changes = output / "BAAQMD_Change_Log.txt"
     legacy_index = output / "BAAQMD_Current_Rules_Index.csv"
     legacy_combined = output / "BAAQMD_All_Current_Rules_Combined.pdf"
     if not state_path.exists() and legacy_state.exists():
         legacy_state.replace(state_path)
+    if not state_path.exists() and legacy_internal_state.exists():
+        legacy_internal_state.replace(state_path)
     if not changes_path.exists() and legacy_changes.exists():
         legacy_changes.replace(changes_path)
+    if not changes_path.exists() and legacy_internal_changes.exists():
+        legacy_internal_changes.replace(changes_path)
     if legacy_index.exists():
         legacy_index.unlink()
     if not combined_path.exists() and legacy_combined.exists():
