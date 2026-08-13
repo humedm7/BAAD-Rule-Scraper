@@ -64,6 +64,20 @@ jobs:
       - name: Update current rules
         run: python baad_rules_updater.py --config config.github.json
 
+      - name: Remove and reject legacy BAAQMD outputs
+        run: |
+          rm -f \
+            "BAAD_Current_Rules/BAAQMD Current Rules Combined.pdf" \
+            "BAAD_Current_Rules/BAAQMD Current Rules Index.xlsx" \
+            "BAAD_Current_Rules/BAAQMD_All_Current_Rules_Combined.pdf" \
+            "BAAD_Current_Rules/BAAQMD_Current_Rules_Index.csv"
+          if find BAAD_Current_Rules -maxdepth 1 -type f \
+              -name 'BAAQMD*' -print -quit | grep -q .; then
+            echo "ERROR: Legacy BAAQMD output remains in the BAAD collection."
+            find BAAD_Current_Rules -maxdepth 1 -type f -name 'BAAQMD*' -print
+            exit 1
+          fi
+
       - name: Package updated collection
         run: |
           zip -q -r BAAD_Current_Rules.zip BAAD_Current_Rules \
