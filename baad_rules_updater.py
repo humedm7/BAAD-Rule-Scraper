@@ -27,7 +27,7 @@ from pypdf import PdfReader, PdfWriter
 
 DEFAULT_CONFIG = Path(__file__).with_name("config.json")
 USER_AGENT = "BAAD-Current-Rules-Updater/1.0"
-OUTPUT_SCHEMA_VERSION = 2
+OUTPUT_SCHEMA_VERSION = 3
 
 
 def rule_filename(code: str) -> str:
@@ -458,6 +458,8 @@ def main() -> int:
     legacy_changes = output / "BAAQMD_Change_Log.txt"
     legacy_index = output / "BAAQMD_Current_Rules_Index.csv"
     legacy_combined = output / "BAAQMD_All_Current_Rules_Combined.pdf"
+    legacy_current_index = output / "BAAQMD Current Rules Index.xlsx"
+    legacy_current_combined = output / "BAAQMD Current Rules Combined.pdf"
     if not state_path.exists() and legacy_state.exists():
         legacy_state.replace(state_path)
     if not state_path.exists() and legacy_internal_state.exists():
@@ -470,6 +472,12 @@ def main() -> int:
         legacy_index.unlink()
     if not combined_path.exists() and legacy_combined.exists():
         legacy_combined.replace(combined_path)
+
+    # The first BAAD release was restored from a BAAQMD-named collection.
+    # Remove those obsolete generated outputs so they cannot be repackaged
+    # alongside the current BAAD files.
+    legacy_current_index.unlink(missing_ok=True)
+    legacy_current_combined.unlink(missing_ok=True)
 
     state = load_state(state_path)
     prior_rules: dict[str, Any] = state.get("rules", {})
