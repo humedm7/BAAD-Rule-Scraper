@@ -54,6 +54,8 @@ if not exist "%SOURCE%\Current Rules\" (
 
 set "NEW_PDF_NAMING="
 if exist "%SOURCE%\Current Rules\Reg-*.pdf" set "NEW_PDF_NAMING=1"
+set "NEW_BAAD_OUTPUTS="
+if exist "%SOURCE%\BAAD Current Rules Combined.pdf" if exist "%SOURCE%\BAAD Current Rules Index.xlsx" set "NEW_BAAD_OUTPUTS=1"
 
 if not exist "%DEST%\" mkdir "%DEST%"
 
@@ -74,6 +76,15 @@ rem Remove obsolete current-folder names only after the new Reg-* set was
 rem successfully copied. Archive files and unrelated files are preserved.
 if defined NEW_PDF_NAMING (
     del /q "%DEST%\Current Rules\RG????.pdf" >nul 2>&1
+)
+
+rem Remove obsolete top-level BAAQMD outputs only after both replacement BAAD
+rem outputs were successfully copied.
+if defined NEW_BAAD_OUTPUTS (
+    del /q "%DEST%\BAAQMD Current Rules Combined.pdf" >nul 2>&1
+    del /q "%DEST%\BAAQMD Current Rules Index.xlsx" >nul 2>&1
+    del /q "%DEST%\BAAQMD_All_Current_Rules_Combined.pdf" >nul 2>&1
+    del /q "%DEST%\BAAQMD_Current_Rules_Index.csv" >nul 2>&1
 )
 
 rmdir /s /q "%WORK%" >nul 2>&1
